@@ -1,3 +1,4 @@
+#Jason Stableford
 yum_package 'java-1.7.0-openjdk-devel' do
   options='--nogpgcheck'
   action :install
