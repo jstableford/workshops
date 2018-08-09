@@ -1,3 +1,10 @@
+Jason Stableford's instructions:
+
+These recipes were built in a Centos7 Vagrant instance, deployed to cookbook 'jstableford': /home/vagrant/jstableford/recipes
+
+I executed them with: sudo chef-client -z install_tomcat.rb
+
+
 # Install and Configure Apache Tomcat
 
 The [Apache Tomcat®](http://tomcat.apache.org/) software is an open source implementation of the Java Servlet, JavaServer Pages, Java Expression Language and Java WebSocket technologies. The Java Servlet, JavaServer Pages, Java Expression Language and Java WebSocket specifications are developed under the Java Community Process.

@@ -1,3 +1,9 @@
+Jason Stableford's instructions:
+
+These recipes were built in a Centos7 Vagrant instance, deployed to cookbook 'jstableford': /home/vagrant/jstableford/recipes
+
+I executed them with: sudo chef-client -z install_mongodb.rb
+
 # Install MongoDB
 
 MongoDB is an open-source, document-oriented database designed for ease of development and scaling.  The MongoDB documentation site includes a [tutorial on how to install MongoDB on RHEL-based system](http://docs.mongodb.org/manual/tutorial/install-mongodb-on-red-hat-centos-or-fedora-linux/).
