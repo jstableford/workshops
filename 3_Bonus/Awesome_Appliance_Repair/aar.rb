@@ -1,30 +1,78 @@
-##########################################################################
-# Cookbook Name:: aar
-# Recipe:: aar
-#
-# Not sure how to get started?
-#
-# You could:
-# 1.  copy AARInstall.py into a recipe file
-# 2.  comment out everything
-# 3.  add the Chef resources and other Chef code necessary
-#
-# This file is an example of steps 1 and 2 above.
-##########################################################################
-#
-# #!/usr/bin/python
 # # -*- coding: utf-8 -*-
 # from subprocess import Popen
 # import os, sys, getpass, binascii
 #
 # # The following script assumes that apache2, mysql, and unzip have been installed.
+apt_update do
+	action :update
+end
+apt_package 'apache2' do
+	action :install
+end
+
+file '/etc/apache2/sites-enabled/AAR-apache.conf' do
+	content "<VirtualHost *:80>
+       ServerName /
+       WSGIDaemonProcess /AAR user=www-data group=www-data threads=5
+       WSGIProcessGroup /AAR
+       WSGIScriptAlias / /var/www/AAR/awesomeapp.wsgi
+
+       <Directory /var/www/AAR>
+         WSGIApplicationGroup %{GLOBAL}
+         WSGIScriptReloading On
+         Order deny,allow
+         Allow from all
+       </Directory>
+
+       CustomLog ${APACHE_LOG_DIR}/access.log combined
+       ServerAdmin ops@example.com
+     </VirtualHost>"
+	mode '0644'
+	owner 'root'
+	group 'root'
+end
+
+apt_package 'mysql-server' do
+	action :install
+end
+apt_package 'unzip' do
+	action :install
+end
+
 #
 # # 1. wget https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip
+remote_file '/tmp/master.zip' do
+	source 'https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip'
+	action :create
+end
 # # 2. unzip master.zip
+execute 'unzip -u /tmp/master.zip' do
+	cwd '/tmp'
+	command "unzip -u master.zip"
+	action :run
+end
+directory '/tmp/Awesome-Appliance-Repair-master/AAR' do
+	owner 'root'
+	group 'www-data'
+	action :create
+end
+#execute 'mv AAR /var/www' do
+#	cwd '/tmp/Awesome-Appliance-Repair'
+#	command "mv -f /tmp/Awesome-Appliance-Repair-master/AAR /var/www"
+#	user 'root'
+#	action :run
+#end
 # # 3. cd into Awesome-Appliance-Repair
 # # 4. sudo mv AAR to /var/www/
 # # 5. sudo su root
 # # 6. run script: python AARinstall.py
+
+mysql_service 'AARdb' do
+	port '3306'
+	initial_root_password 'root_dbpswd'
+	action[:create,:start]
+end
+
 # # 7. manually execute: apachectl graceful
 #
 # if __name__ == '__main__':
