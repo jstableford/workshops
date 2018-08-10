@@ -3,6 +3,10 @@
 # import os, sys, getpass, binascii
 #
 # # The following script assumes that apache2, mysql, and unzip have been installed.
+require 'securerandom'
+appdbpw = SecureRandom.urlsafe_base64(6)
+secretkey = SecureRandom.urlsafe_base64(12)
+
 apt_update do
 	action :update
 end
@@ -10,6 +14,12 @@ apt_package 'apache2' do
 	action :install
 end
 apt_package 'libapache2-mod-wsgi' do
+	action :install
+end
+apt_package 'python-pip' do
+	action :install
+end
+apt_package 'python-mysqldb' do
 	action :install
 end
 file '/etc/apache2/sites-enabled/000-default.conf' do
@@ -57,7 +67,6 @@ end
 
 
 
-######Got error [2018-08-10T14:07:43+00:00] ERROR: remote_directory[/var/www/AAR] (@recipe_files::/home/vagrant/jstableford/recipes/aar.rb line 62) had an error: Chef::Exceptions::CookbookNotFound: Cookbook jstableford not found. If you're loading jstableford from another cookbook, make sure you configure the dependency in your metadata
 
 remote_file '/tmp/master.zip' do
 	source 'https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip'
@@ -75,7 +84,10 @@ execute 'mv AAR /var/www' do
 	user 'root'
 	action :run
 end
-execute 'chown www-data /var/www'
+execute 'chown www-data /var/www' do
+	command "chown -R www-data:www-data /var/www"
+	action :run
+end
 # remote_directory '/var/www/AAR' do
 # 	source 'AAR'
 # 	owner 'root'
@@ -94,6 +106,48 @@ execute 'chown www-data /var/www'
 execute 'apachectl graceful' do
 	command '/usr/sbin/apachectl graceful'
 	user 'root'
+	action :run
+end
+
+execute 'pip install flask' do
+	command 'pip install flask'
+	user 'root'
+	action :run
+end
+## Can't get mysql_server to work in vagrant VM - gotta do this manually
+execute 'mysqladmin -u root password root_dbpswd' do
+	command 'mysqladmin -u root password root_dbpswd'
+	user 'root'
+	ignore_failure true
+	action :run
+end
+
+file '/var/www/AAR/AAR_config.py' do
+	
+	user 'www-data'
+	group 'www-data'
+	content %Q(CONNECTION_ARGS = {"host":"localhost", "user":"aarapp", "passwd":"#{appdbpw}", "db":"AARdb"}
+SECRET_KEY = "#{secretkey}"
+DB_VALUES = [(3,'Maytag','Washer', None, 'pending', "outflow hoses leak"),(4,'GE','Refrigerator', '2013-11-01', 'completed', "Ices up; won't defrost"), (5,'Alessi','Teapot', None, 'pending', "explodes"), (6,'Amana','Range', '2013-11-02', 'completed', "oven heats unevenly"), (7,'Whirlpool','Refrigerator', '2013-11-03', 'pending', "Makes a rattling noise"), (8,'GE','Microwave', '2013-11-04', 'pending', "Sparks and smokes when I put forks in it"), (9,'Maytag','Drier', None, 'pending', "Never heats up"), (10,'Amana','Refrigerator', '2013-11-05', 'pending', "Temperature too low, can't adjust."), (11,'Samsung','Washer', None, 'pending', "Doesn't get my bear suit white"), (12,'Frigidaire','Refrigerator', '2013-11-06', 'completed', "Has a bad smell I can't get rid of."), (13,'In-Sink-Erator','Dispose-all', None, 'pending', "blades broken"), (14,'KitchenAid','Mixer', '2013-11-07', 'completed', "Blows my fuses"), (15,'Moulinex','Juicer', None, 'pending', "Won't start"), (16,'Viking','Range', '2013-11-08', 'completed', "Gas leak"), (17,'Aga','Range', None, 'pending', "burner cover is cracked"), (18,'Jennaire','Cooktop', '2013-11-09', 'completed', "Glass cracked"), (19,'Wolfe','Stove', None, 'pending', "Burners are uneven"), (20,'LG','Dehumidifier', '2013-11-10', 'pending', "Ices up when external temp is around freezing"), (21,'DeLonghi','Oil Space Heater', None, 'pending', "Smells bad"), (22,'Kenmore','Refrigerator', '2013-11-11', 'pending', "excessive vibration"), (23,'Maytag','Washer/Drier', None, 'pending', "outflow hoses leak"), (24,'GE','Refrigerator', '2013-11-12', 'pending', "Refrigerator light is defective"), (25,'Kenmore','Washer', None, 'pending', "Unbalanced spin cycle"), (26,'Cookmore','Outdoor Grill', '2013-11-13', 'pending', "Smoker box is stuck"), (27,'Kenmore','Water heater', None, 'pending', "Can't adjust temperature"), (28,'Sanyo','Minifridge', '2013-11-14', 'pending', "Makes a lot of noise"), (29,'Bosch','Dishwasher', None, 'pending', "leaves spots on my glasses"), (30,'Whirlpool','Trash Compactor', '2013-11-15', 'pending', "leaking hydraulic fluid")])
+	action :create
+end
+
+execute 'mysql' do
+	command 'mysql -u root -proot_dbpswd < /tmp/Awesome-Appliance-Repair-master/make_AARdb.sql'
+	ignore_failure true
+	action :run
+end
+
+execute 'mysql create user' do
+	command %Q(echo "CREATE USER 'aarapp'@'localhost' IDENTIFIED BY '#{appdbpw}'" | mysql -u root -proot_dbpswd AARdb)
+	ignore_failure true
+	action :run
+end
+
+execute 'mysql update creds' do
+	command %Q(echo "GRANT CREATE,INSERT,DELETE,UPDATE,SELECT on AARdb.* to aarapp@localhost" | mysql -u root -proot_dbpswd AARdb)
+	ignore_failure true
+	action :run
 end
 
 # if __name__ == '__main__':
