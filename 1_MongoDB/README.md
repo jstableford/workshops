@@ -2,7 +2,7 @@ Jason Stableford's instructions:
 
 These recipes were built in a Centos7 Vagrant instance, deployed to cookbook 'jstableford': /home/vagrant/jstableford/recipes
 
-I executed them with: sudo chef-client -z install_mongodb.rb
+I executed them with: sudo chef-client -z install_mongo.rb
 
 # Install MongoDB
 
