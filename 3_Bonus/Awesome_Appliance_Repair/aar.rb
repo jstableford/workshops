@@ -9,14 +9,20 @@ end
 apt_package 'apache2' do
 	action :install
 end
-
+apt_package 'libapache2-mod-wsgi' do
+	action :install
+end
+file '/etc/apache2/sites-enabled/000-default.conf' do
+	action :delete
+end
 file '/etc/apache2/sites-enabled/AAR-apache.conf' do
-	content "<VirtualHost *:80>
+	content "LoadModule wsgi_module modules/mod_wsgi.so 
+	<VirtualHost *:80>
        ServerName /
        WSGIDaemonProcess /AAR user=www-data group=www-data threads=5
        WSGIProcessGroup /AAR
        WSGIScriptAlias / /var/www/AAR/awesomeapp.wsgi
-
+       DocumentRoot /var/www
        <Directory /var/www/AAR>
          WSGIApplicationGroup %{GLOBAL}
          WSGIScriptReloading On
@@ -41,40 +47,55 @@ end
 
 #
 # # 1. wget https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip
+# remote_file '/tmp/master.zip' do
+# 	source 'https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip'
+# 	action :create
+# end
+# # 2. unzip master.zip
+
+
+
+
+
+######Got error [2018-08-10T14:07:43+00:00] ERROR: remote_directory[/var/www/AAR] (@recipe_files::/home/vagrant/jstableford/recipes/aar.rb line 62) had an error: Chef::Exceptions::CookbookNotFound: Cookbook jstableford not found. If you're loading jstableford from another cookbook, make sure you configure the dependency in your metadata
+
 remote_file '/tmp/master.zip' do
 	source 'https://github.com/colincam/Awesome-Appliance-Repair/archive/master.zip'
+	owner 'vagrant'
 	action :create
 end
-# # 2. unzip master.zip
+
 execute 'unzip -u /tmp/master.zip' do
-	cwd '/tmp'
-	command "unzip -u master.zip"
+ 	cwd '/tmp'
+ 	command "unzip -u master.zip"
+ 	action :run
+ end
+execute 'mv AAR /var/www' do
+	command "rsync -a /tmp/Awesome-Appliance-Repair-master/AAR /var/www/."
+	user 'root'
 	action :run
 end
-directory '/tmp/Awesome-Appliance-Repair-master/AAR' do
-	owner 'root'
-	group 'www-data'
-	action :create
-end
-#execute 'mv AAR /var/www' do
-#	cwd '/tmp/Awesome-Appliance-Repair'
-#	command "mv -f /tmp/Awesome-Appliance-Repair-master/AAR /var/www"
-#	user 'root'
-#	action :run
-#end
+execute 'chown www-data /var/www'
+# remote_directory '/var/www/AAR' do
+# 	source 'AAR'
+# 	owner 'root'
+# 	group 'root'
+# 	action :create
+# end
 # # 3. cd into Awesome-Appliance-Repair
 # # 4. sudo mv AAR to /var/www/
 # # 5. sudo su root
 # # 6. run script: python AARinstall.py
 
-mysql_service 'AARdb' do
-	port '3306'
-	initial_root_password 'root_dbpswd'
-	action[:create,:start]
-end
+# 
 
 # # 7. manually execute: apachectl graceful
 #
+execute 'apachectl graceful' do
+	command '/usr/sbin/apachectl graceful'
+	user 'root'
+end
+
 # if __name__ == '__main__':
 #     root_dbpswd = getpass.getpass('enter the mysql root user password: ')
 #
