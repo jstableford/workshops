@@ -119,7 +119,7 @@ end
 execute 'mysqladmin -u root password root_dbpswd' do
 	command 'mysqladmin -u root password root_dbpswd'
 	user 'root'
-	not_if { `/usr/bin/mysql -u root -proot_dbpswd \"SHOW DATABASES"`}
+	not_if 'echo "SHOW DATABASES" | /usr/bin/mysql -u root -proot_dbpswd'
 	ignore_failure true
 	action :run
 end
@@ -134,17 +134,20 @@ DB_VALUES = [(3,'Maytag','Washer', None, 'pending', "outflow hoses leak"),(4,'GE
 	action :create
 end
 
-execute 'mysql' do
-	command 'mysql -u root -proot_dbpswd < /tmp/Awesome-Appliance-Repair-master/make_AARdb.sql'
-	not_if { 'mysqlshow --user=root --password=root_dbpswd | grep -v Wildcard | grep -o AARdb'.include? "AARdb" }
-	action :run
+bash 'mysql import make_AARdb.sql' do
+	user 'root'
+	code <<-EOH
+	mysql -u root -proot_dbpswd < /tmp/Awesome-Appliance-Repair-master/make_AARdb.sql
+	EOH
+	not_if 'mysqlshow --user=root --password=root_dbpswd | grep -v Wildcard | grep -o AARdb'
 end
 
-
-execute 'drop existing user' do
-	command %Q(echo "DROP USER 'aarapp'@'localhost'; FLUSH PRIVILEGES;" | mysql -u root -proot_dbpswd  mysql)
-	only_if {%Q(echo "select User from user where User like 'aarapp'" | mysql -u root -proot_dbpswd  mysql  -r -B -N).include? "aarapp"}
-	action :run
+bash 'drop existing user' do
+	user 'root'
+	code <<-EOH
+	echo "DROP USER 'aarapp'@'localhost'; FLUSH PRIVILEGES;" | mysql -u root -proot_dbpswd -D mysql
+	EOH
+	only_if %Q(echo "select User from user where User like 'aarapp'" | mysql -u root -proot_dbpswd  mysql  -r -B -N | grep "aarapp")
 end
 
 execute 'mysql create user' do
