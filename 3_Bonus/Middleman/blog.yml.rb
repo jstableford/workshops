@@ -1,0 +1,12 @@
+# /etc/thin/blog.yml
+pid: tmp/pids/thin.pid
+log: log/thin.log
+timeout: 30
+max_conns: 1024
+port: 3000
+max_persistent_conns: 512
+chdir: <%= @project_install_directory %>
+environment: development
+servers: 1
+address: 0.0.0.0
+daemonize: true
