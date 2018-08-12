@@ -6,6 +6,7 @@
 require 'securerandom'
 appdbpw = SecureRandom.urlsafe_base64(6)
 secretkey = SecureRandom.urlsafe_base64(12)
+mysqlpasswd = 'root_dbpswd'
 
 apt_update do
 	action :update
@@ -118,6 +119,7 @@ end
 execute 'mysqladmin -u root password root_dbpswd' do
 	command 'mysqladmin -u root password root_dbpswd'
 	user 'root'
+	not_if { `/usr/bin/mysql -u root -proot_dbpswd \"SHOW DATABASES"`}
 	ignore_failure true
 	action :run
 end
@@ -134,18 +136,25 @@ end
 
 execute 'mysql' do
 	command 'mysql -u root -proot_dbpswd < /tmp/Awesome-Appliance-Repair-master/make_AARdb.sql'
-	ignore_failure true
+	not_if { 'mysqlshow --user=root --password=root_dbpswd | grep -v Wildcard | grep -o AARdb'.include? "AARdb" }
+	action :run
+end
+
+
+execute 'drop existing user' do
+	command %Q(echo "DROP USER 'aarapp'@'localhost'; FLUSH PRIVILEGES;" | mysql -u root -proot_dbpswd  mysql)
+	only_if {%Q(echo "select User from user where User like 'aarapp'" | mysql -u root -proot_dbpswd  mysql  -r -B -N).include? "aarapp"}
 	action :run
 end
 
 execute 'mysql create user' do
-	command %Q(echo "CREATE USER 'aarapp'@'localhost' IDENTIFIED BY '#{appdbpw}'" | mysql -u root -proot_dbpswd AARdb)
-	ignore_failure true
+	command %Q(echo "CREATE USER 'aarapp'@'localhost' IDENTIFIED BY '#{appdbpw}'" | mysql -u root -p#{mysqlpasswd} AARdb)
 	action :run
+	ignore_failure true
 end
 
 execute 'mysql update creds' do
-	command %Q(echo "GRANT CREATE,INSERT,DELETE,UPDATE,SELECT on AARdb.* to aarapp@localhost" | mysql -u root -proot_dbpswd AARdb)
+	command %Q(echo "GRANT CREATE,INSERT,DELETE,UPDATE,SELECT on AARdb.* to aarapp@localhost" | mysql -u root -p#{mysqlpasswd} -D AARdb)
 	ignore_failure true
 	action :run
 end
@@ -223,4 +232,4 @@ end
 #     cur.execute("CREATE USER 'aarapp'@'localhost' IDENTIFIED BY %s", (appdbpw,))
 #     cur.execute("GRANT CREATE,INSERT,DELETE,UPDATE,SELECT on AARdb.* to aarapp@localhost")
 #     cur.close()
-#     db.close()#
+#     db.close()
