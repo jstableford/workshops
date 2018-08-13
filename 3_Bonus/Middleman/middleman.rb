@@ -21,7 +21,7 @@
 
 # ```
 # # Update apt-get
-
+ipaddress = node['ipaddress']
 # apt-get update
 apt_update do
   action :update
@@ -91,6 +91,7 @@ end
 
 bash 'build ruby' do
   user 'root'
+  not_if '[ -e /usr/bin/ruby ]' #test where bin is put
   code <<-EOH
   mkdir /tmp/ruby
   cd /tmp/ruby
@@ -101,13 +102,11 @@ bash 'build ruby' do
   make install
   rm -rf /tmp/ruby
   EOH
-  not_if '[[ -e /usr/bin/irbs ]]' #test where bin is put
 end
 
 execute 'copy executable ruby/gem' do
-  command 'cp /usr/local/bin/ruby /usr/bin/ruby'
-  command 'cp /usr/local/bin/gem /usr/bin/gem'
-  not_if '[[ -e /usr/bin/gem ]] && [[ -e /usr/bin/ruby ]]'
+  not_if '[ -e /usr/bin/gem ] && [ -e /usr/bin/ruby ]'
+  command 'cp /usr/local/bin/ruby /usr/bin/ruby; cp /usr/local/bin/gem /usr/bin/gem'  
   user 'root'
   action :run
 end
@@ -147,8 +146,8 @@ ProxyRequests Off
 
 
 <VirtualHost *:80>
-  ServerName <%= node['ipaddress'] %>
-  ServerAlias <%= node['ipaddress'] %>
+  ServerName #{ipaddress}
+  ServerAlias #{ipaddress}
 
   ProxyRequests Off
   RewriteEngine On
@@ -163,10 +162,12 @@ end
 bash 'configure apache2' do
   user 'root'
   code <<-EOH
+  rm /etc/apache2/sites-enabled/000-default.conf 
   a2enmod proxy_http
   a2enmod rewrite
-  service apache2 restart
+  service apache2 stop
   EOH
+  action :run
 end
 # # Restart apache
 
@@ -181,11 +182,11 @@ end
 # # Clone the repo
 
 # git clone https://github.com/learnchef/middleman-blog.git
-git 'middleman-blog' do
+git '/home/vagrant/jstableford/recipes/middleman/middleman-blog' do
   repository 'https://github.com/learnchef/middleman-blog.git'
   reference 'master'
-  action :checkout
-  user 'vagrant'
+  action :sync
+  user 'root'
 end
 # cd middleman-blog
 
@@ -193,7 +194,8 @@ end
 execute 'gem install bundler' do
   cwd '/home/vagrant/jstableford/recipes/middleman/middleman-blog'
   command 'gem install bundler'
-  user 'vagrant'
+  not_if 'gem list | grep bundler'
+  user 'root'
   action :run
 end
 # gem install bundler
@@ -201,12 +203,74 @@ end
 # # Install project dependencies
 
 # bundle install
+execute 'bundle install' do
+  cwd '/home/vagrant/jstableford/recipes/middleman/middleman-blog'
+  command 'bundle install'
+  not_if 'gem list | grep middleman-blog'
+  user 'root'
+  action :run
+end
 # > should not be run as root. So another should be created
 file '/etc/init.d/thin' do
   user 'root'
   content IO.read('/home/vagrant/jstableford/recipes/middleman/thin.sh')
   action :create
 end
+
+directory '/etc/thin' do
+  owner 'root'
+  action :create
+end
+
+file '/etc/thin/blog.yml' do
+  owner 'root'
+  content "# pid: tmp/pids/thin.pid
+log: log/thin.log
+timeout: 30
+max_conns: 1024
+port: 3000
+max_persistent_conns: 512
+chdir: '/home/vagrant/jstableford/recipes/middleman/middleman-blog'
+environment: development
+servers: 1
+address: 0.0.0.0
+daemonize: true
+"
+  action :create
+end
+
+remote_file '/etc/init.d/thin' do
+  owner 'root'
+  source 'file:///home/vagrant/jstableford/recipes/middleman/thin'
+  action :create
+end
+
+bash 'thin install' do
+  user 'root'
+  code <<-EOH
+  chmod +x /etc/init.d/thin
+  chown -R vagrant:vagrant /home/vagrant/jstableford/recipes/middleman/middleman-blog
+  EOH
+  action :run
+end
+
+execute 'thin restart' do
+  user 'vagrant'
+  command '/etc/init.d/thin restart'
+  action :run
+end
+
+execute 'apache restart' do
+  user 'root'
+  command '/etc/init.d/apache2 restart'
+  action :run
+end
+# systemd_unit 'thin' do
+#   content IO.read('/home/vagrant/jstableford/recipes/middleman/thin')
+#   action [:create, :enable, :start]
+#   ignore_failure true
+# end
+
 # # Install thin service
 # thin install
 # /usr/sbin/update-rc.d -f thin defaults

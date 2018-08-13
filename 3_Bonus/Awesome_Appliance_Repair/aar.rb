@@ -119,7 +119,7 @@ end
 execute 'mysqladmin -u root password root_dbpswd' do
 	command 'mysqladmin -u root password root_dbpswd'
 	user 'root'
-	not_if 'echo "SHOW DATABASES" | /usr/bin/mysql -u root -proot_dbpswd'
+#	not_if '/usr/bin/mysql -u root -proot_dbpswd < test.sql'
 	ignore_failure true
 	action :run
 end

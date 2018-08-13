@@ -1,3 +1,9 @@
+Jason Stableford's instructions.
+
+All files should be copied to vagrant Ubuntu instance.
+
+I executed them with: sudo chef-client -z aar.rb
+
 # Awesome Appliance Repair
 
 [Awesome Appliance Repair](https://github.com/learnchef/Awesome-Appliance-Repair) is a sample web application written in Python.  The application includes [instructions for installing and initializing the application](https://github.com/learnchef/Awesome-Appliance-Repair/blob/master/AARinstall.py) on Ubuntu using MySQL as the database and Apache as the web server.

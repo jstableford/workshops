@@ -1,3 +1,9 @@
+Jason Stableford's Instructions:
+
+Copy files to target Ubuntu server
+execute in this dir 'sudo chef-client -z middleman.rb'
+
+
 # Middleman
 
 [Middleman](http://middlemanapp.com/) is a static site generator using all the shortcuts and tools in modern web development. It is a ruby (sinatra) application.

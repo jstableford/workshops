@@ -5,7 +5,7 @@ timeout: 30
 max_conns: 1024
 port: 3000
 max_persistent_conns: 512
-chdir: <%= @project_install_directory %>
+chdir: '/usr/local/lib/ruby/gems/2.1.0/gems/thin-1.6.3/'
 environment: development
 servers: 1
 address: 0.0.0.0

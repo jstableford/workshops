@@ -18,7 +18,7 @@
 DAEMON=/usr/local/bin/thin
 SCRIPT_NAME=/etc/init.d/thin
 CONFIG_PATH=/etc/thin
-HOME=<%= @home_directory %>
+HOME=/usr/local/lib/ruby/gems/2.1.0/gems/thin-1.6.3/
 
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0
@@ -39,4 +39,4 @@ case "$1" in
   ;;
 esac
 
-:
+exit 0
