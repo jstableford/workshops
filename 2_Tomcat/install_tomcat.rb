@@ -57,7 +57,7 @@ execute 'chmod g+x conf' do
 	command "chmod g+x conf"
 end
 
-execute 'hown -R tomcat webapps/ work/ temp/ logs/' do
+execute 'chown -R tomcat webapps/ work/ temp/ logs/' do
 	user 'root'
 	cwd '/opt/tomcat'
 	command "chown -R tomcat webapps/ work/ temp/ logs/"
